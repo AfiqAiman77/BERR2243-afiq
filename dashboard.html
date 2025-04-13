@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ride Hailing Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 { color: #333; }
+    input, select, button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+    .action-btn {
+      margin-right: 5px;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    .form-container {
+      max-width: 400px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🚖 Ride Hailing Dashboard</h1>
+
+  <div class="form-container">
+    <h2>Create a New Ride</h2>
+    <form onsubmit="event.preventDefault(); createRide();">
+      <div class="form-group">
+        <label for="driver">👤 Driver:</label>
+        <input id="driver" placeholder="Enter driver's name" required />
+      </div>
+      <div class="form-group">
+        <label for="pickup">📍 Pickup Location:</label>
+        <input id="pickup" placeholder="Enter pickup location" required />
+      </div>
+      <div class="form-group">
+        <label for="destination">🏁 Destination:</label>
+        <input id="destination" placeholder="Enter destination" required />
+      </div>
+      <div class="form-group">
+        <label for="status">📦 Status:</label>
+        <select id="status">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <button type="submit">➕ Add Ride</button>
+    </form>
+  </div>
+
+  <h2>All Rides</h2>
+  <button onclick="loadRides()">🔄 Refresh List</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Driver</th>
+        <th>Pickup</th>
+        <th>Destination</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="rideTable"></tbody>
+  </table>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+
+    async function loadRides() {
+      const res = await fetch(`${API_BASE}/rides`);
+      const rides = await res.json();
+      const table = document.getElementById('rideTable');
+      table.innerHTML = '';
+
+      rides.forEach(ride => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+          <td>${ride.driver}</td>
+          <td>${ride.pickup}</td>
+          <td>${ride.destination}</td>
+          <td>${ride.status || 'Pending'}</td>
+          <td>
+            <button class="action-btn" onclick="markCompleted('${ride._id}')">✅ Complete</button>
+            <button class="action-btn" onclick="deleteRide('${ride._id}')">🗑️ Delete</button>
+          </td>
+        `;
+
+        table.appendChild(row);
+      });
+    }
+
+    async function createRide() {
+      const driver = document.getElementById('driver').value;
+      const pickup = document.getElementById('pickup').value;
+      const destination = document.getElementById('destination').value;
+      const status = document.getElementById('status').value;
+
+      const res = await fetch(`${API_BASE}/rides`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver, pickup, destination, status })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        loadRides();
+        document.getElementById('driver').value = '';
+        document.getElementById('pickup').value = '';
+        document.getElementById('destination').value = '';
+        document.getElementById('status').value = 'Pending';
+      } else {
+        alert('Error adding ride: ' + result.error);
+      }
+    }
+
+    async function markCompleted(id) {
+      await fetch(`${API_BASE}/rides/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed' })
+      });
+      loadRides();
+    }
+
+    async function deleteRide(id) {
+      await fetch(`${API_BASE}/rides/${id}`, {
+        method: 'DELETE'
+      });
+      loadRides();
+    }
+
+    // Load rides when the page loads
+    loadRides();
+  </script>
+
+</body>
+</html>
